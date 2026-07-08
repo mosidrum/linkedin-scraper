@@ -8,7 +8,7 @@ import {
   NetworkError,
 } from '../errors'
 import type { ProfileProvider } from './base'
-import type { LinkedInProfile, ValidationResult, PostItem } from '../types'
+import type { LinkedInProfile, ValidationResult, PostItem, PostComment } from '../types'
 
 const ACTOR_ID = 'harvestapi~linkedin-profile-scraper'
 const APIFY_BASE = 'https://api.apify.com/v2'
@@ -60,21 +60,26 @@ export class ApifyProvider implements ProfileProvider {
     return normalizeProfile(items[0], profileUrl, this.id)
   }
 
-  async fetchPosts(profileUrl: string, maxPosts = 10): Promise<PostItem[]> {
-    const run = await this.startPostsRun(profileUrl, maxPosts)
+  async fetchPosts(profileUrl: string, maxPosts = 10, scrapeComments = false): Promise<PostItem[]> {
+    const run = await this.startPostsRun(profileUrl, maxPosts, scrapeComments)
     const finishedRun = await this.pollUntilDone(run.id)
     const items = await this.fetchDataset(finishedRun.defaultDatasetId)
     return items.map((raw, i) => normalizePost(raw, i))
   }
 
-  private async startPostsRun(profileUrl: string, maxPosts: number): Promise<ApifyRun> {
+  private async startPostsRun(profileUrl: string, maxPosts: number, scrapeComments: boolean): Promise<ApifyRun> {
     const res = await fetch(`${APIFY_BASE}/acts/harvestapi~linkedin-profile-posts/runs`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ targetUrls: [profileUrl], maxPosts }),
+      body: JSON.stringify({
+        targetUrls: [profileUrl],
+        maxPosts,
+        scrapeComments,
+        maxComments: scrapeComments ? 5 : 0,
+      }),
     })
     if (res.status === 429) throw new RateLimitError()
     if (!res.ok) {
@@ -155,12 +160,22 @@ function normalizePost(raw: Record<string, unknown>, index: number): PostItem {
   const num = (v: unknown) => { const n = Number(v); return isNaN(n) ? null : n }
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 
-  // Extract first image from various shapes
   let imageUrl: string | null = null
   const images = r.images ?? r.media
   if (Array.isArray(images) && images.length > 0) {
     imageUrl = str((images[0] as Record<string, unknown>)?.url ?? images[0]) || null
   }
+
+  const rawComments = r.comments ?? r.topComments ?? []
+  const comments: PostComment[] = Array.isArray(rawComments)
+    ? rawComments.map((c: Record<string, unknown>, ci: number) => ({
+        id: str(c.id ?? c.urn) || `comment-${index}-${ci}`,
+        text: str(c.text ?? c.content ?? c.commentary),
+        authorName: str(c.authorName ?? c.author?.name ?? c.commenterName) || null,
+        postedAt: str(c.postedAt ?? c.createdAt ?? c.date) || null,
+        likesCount: num(c.likesCount ?? c.likes),
+      }))
+    : []
 
   return {
     id: str(r.id ?? r.urn ?? r.entityUrn) || `post-${index}`,
@@ -168,9 +183,10 @@ function normalizePost(raw: Record<string, unknown>, index: number): PostItem {
     url: str(r.url ?? r.postUrl ?? r.link) || null,
     postedAt: str(r.postedAt ?? r.publishedAt ?? r.createdAt ?? r.date) || null,
     likesCount: num(r.likesCount ?? r.likes ?? r.numLikes),
-    commentsCount: num(r.commentsCount ?? r.comments ?? r.numComments),
+    commentsCount: num(r.commentsCount ?? r.numComments),
     repostsCount: num(r.repostsCount ?? r.reposts ?? r.numReposts ?? r.sharesCount),
     imageUrl,
     isRepost: Boolean(r.isRepost ?? r.repost ?? false),
+    comments,
   }
 }

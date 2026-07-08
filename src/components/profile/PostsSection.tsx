@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import type { PostItem } from '@/lib/linkedin/types'
+import type { PostItem, PostComment } from '@/lib/linkedin/types'
 
 interface Props {
   profileUrl: string
@@ -27,11 +27,35 @@ function formatCount(n: number | null): string {
   return String(n)
 }
 
+function CommentBubble({ comment }: { comment: PostComment }) {
+  return (
+    <div className="flex gap-2.5">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600">
+        {comment.authorName?.[0]?.toUpperCase() ?? '?'}
+      </div>
+      <div className="flex-1 rounded-xl bg-white border border-gray-100 px-3 py-2 text-xs">
+        {comment.authorName && (
+          <span className="font-semibold text-gray-800">{comment.authorName} </span>
+        )}
+        <span className="text-gray-600">{comment.text}</span>
+        <div className="mt-1 flex items-center gap-3 text-gray-400">
+          {comment.postedAt && <span>{formatRelativeDate(comment.postedAt)}</span>}
+          {comment.likesCount !== null && (
+            <span className="flex items-center gap-0.5">👍 {formatCount(comment.likesCount)}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PostCard({ post }: { post: PostItem }) {
   const [expanded, setExpanded] = useState(false)
+  const [showComments, setShowComments] = useState(false)
   const TRUNCATE_AT = 280
   const isLong = post.text.length > TRUNCATE_AT
   const displayText = isLong && !expanded ? post.text.slice(0, TRUNCATE_AT) + '…' : post.text
+  const hasComments = post.comments.length > 0
 
   return (
     <article className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
@@ -79,21 +103,30 @@ function PostCard({ post }: { post: PostItem }) {
       {/* Engagement row */}
       <div className="flex items-center gap-4 text-xs text-gray-500 pt-1 border-t border-gray-200">
         {post.likesCount !== null && (
-          <span className="flex items-center gap-1">
-            <span>👍</span> {formatCount(post.likesCount)}
-          </span>
+          <span className="flex items-center gap-1">👍 {formatCount(post.likesCount)}</span>
         )}
         {post.commentsCount !== null && (
-          <span className="flex items-center gap-1">
-            <span>💬</span> {formatCount(post.commentsCount)}
-          </span>
+          <button
+            onClick={() => hasComments && setShowComments((s) => !s)}
+            className={`flex items-center gap-1 ${hasComments ? 'text-blue-500 hover:underline cursor-pointer' : ''}`}
+          >
+            💬 {formatCount(post.commentsCount)}
+            {hasComments && <span className="ml-0.5">{showComments ? '▲' : '▼'}</span>}
+          </button>
         )}
         {post.repostsCount !== null && (
-          <span className="flex items-center gap-1">
-            <span>🔁</span> {formatCount(post.repostsCount)}
-          </span>
+          <span className="flex items-center gap-1">🔁 {formatCount(post.repostsCount)}</span>
         )}
       </div>
+
+      {/* Comments */}
+      {showComments && hasComments && (
+        <div className="space-y-2 pt-1">
+          {post.comments.map((c) => (
+            <CommentBubble key={c.id} comment={c} />
+          ))}
+        </div>
+      )}
     </article>
   )
 }
@@ -123,8 +156,26 @@ export function PostsSection({ profileUrl }: Props) {
         return
       }
 
-      setPosts(data.posts ?? [])
+      const loadedPosts = data.posts ?? []
+      setPosts(loadedPosts)
       setState('loaded')
+
+      console.group(`LinkedIn Scrapper — Posts (${loadedPosts.length})`)
+      loadedPosts.forEach((p: PostItem, i: number) => {
+        console.group(`Post ${i + 1}: ${p.text.slice(0, 60)}…`)
+        console.log('ID:', p.id)
+        console.log('Text:', p.text)
+        console.log('Posted at:', p.postedAt)
+        console.log('Likes:', p.likesCount)
+        console.log('Comments count:', p.commentsCount)
+        console.log('Reposts:', p.repostsCount)
+        console.log('URL:', p.url)
+        console.log('Is repost:', p.isRepost)
+        if (p.comments.length > 0) console.log('Top comments:', p.comments)
+        console.groupEnd()
+      })
+      console.log('Full posts array:', loadedPosts)
+      console.groupEnd()
     } catch {
       setError('Network error loading posts')
       setState('error')

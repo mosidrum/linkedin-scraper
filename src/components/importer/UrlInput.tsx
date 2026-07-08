@@ -69,6 +69,13 @@ export function UrlInput({ onValidChange, disabled = false }: Props) {
       ? 'border-red-400 focus:ring-red-200'
       : 'border-gray-300 focus:ring-blue-200'
 
+  const textClass =
+    state === 'valid'
+      ? 'text-green-600'
+      : state === 'invalid'
+      ? 'text-red-600'
+      : 'text-gray-900'
+
   return (
     <div className="w-full">
       <div className="relative">
@@ -84,7 +91,6 @@ export function UrlInput({ onValidChange, disabled = false }: Props) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onPaste={(e) => {
-            // Allow paste to settle before validation triggers
             const pasted = e.clipboardData.getData('text')
             setValue(pasted)
             e.preventDefault()
@@ -94,7 +100,7 @@ export function UrlInput({ onValidChange, disabled = false }: Props) {
           aria-label="LinkedIn profile URL"
           aria-describedby={error ? 'url-error' : undefined}
           aria-invalid={state === 'invalid'}
-          className={`w-full rounded-xl border-2 bg-white py-3 pl-12 pr-12 text-sm placeholder-gray-400 shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${borderClass}`}
+          className={`w-full rounded-xl border-2 bg-white py-3 pl-12 pr-12 text-sm font-medium placeholder-gray-400 shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${borderClass} ${textClass}`}
         />
 
         {/* Right indicator */}

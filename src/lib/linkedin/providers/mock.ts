@@ -1,6 +1,6 @@
 import { validateLinkedInUrl, extractPublicIdentifier } from '../validator'
 import type { ProfileProvider } from './base'
-import type { LinkedInProfile, ValidationResult, PostItem } from '../types'
+import type { LinkedInProfile, ValidationResult, PostItem, PostComment } from '../types'
 
 const MOCK_PROFILE_TEMPLATE: Omit<
   LinkedInProfile,
@@ -140,6 +140,10 @@ const MOCK_POSTS: PostItem[] = [
     repostsCount: 124,
     imageUrl: null,
     isRepost: false,
+    comments: [
+      { id: 'c-0-0', text: 'Congrats on the launch! OpenTelemetry support is huge.', authorName: 'Sara Chen', postedAt: '2026-07-01T11:30:00Z', likesCount: 24 },
+      { id: 'c-0-1', text: 'What was the biggest challenge migrating from v1?', authorName: 'James Okafor', postedAt: '2026-07-01T13:00:00Z', likesCount: 8 },
+    ],
   },
   {
     id: 'post-1',
@@ -151,6 +155,11 @@ const MOCK_POSTS: PostItem[] = [
     repostsCount: 389,
     imageUrl: null,
     isRepost: false,
+    comments: [
+      { id: 'c-1-0', text: 'This is the realest thing I\'ve read on LinkedIn this year.', authorName: 'Priya Nair', postedAt: '2026-06-15T16:00:00Z', likesCount: 312 },
+      { id: 'c-1-1', text: 'What did you consolidate first? Services or infra?', authorName: 'Luca Bianchi', postedAt: '2026-06-15T17:45:00Z', likesCount: 45 },
+      { id: 'c-1-2', text: 'Shared this with my whole team. We needed to hear this.', authorName: 'Amara Osei', postedAt: '2026-06-16T09:00:00Z', likesCount: 89 },
+    ],
   },
   {
     id: 'post-2',
@@ -162,6 +171,9 @@ const MOCK_POSTS: PostItem[] = [
     repostsCount: 58,
     imageUrl: null,
     isRepost: false,
+    comments: [
+      { id: 'c-2-0', text: 'This is so inspiring. Which city is Code for Good in?', authorName: 'Fatima Al-Rashid', postedAt: '2026-05-28T10:00:00Z', likesCount: 17 },
+    ],
   },
 ]
 
@@ -173,7 +185,7 @@ export class MockProvider implements ProfileProvider {
     return validateLinkedInUrl(url)
   }
 
-  async fetchPosts(_url: string, _maxPosts = 10): Promise<PostItem[]> {
+  async fetchPosts(_url: string, _maxPosts = 10, _scrapeComments = false): Promise<PostItem[]> {
     await new Promise((resolve) => setTimeout(resolve, 800))
     return MOCK_POSTS
   }

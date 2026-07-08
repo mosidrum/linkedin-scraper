@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     let posts
     if (provider instanceof ApifyProvider || provider instanceof MockProvider) {
-      posts = await provider.fetchPosts(validation.normalizedUrl, maxPosts)
+      posts = await provider.fetchPosts(validation.normalizedUrl, maxPosts, true)
     } else {
       return errorResponse('PROVIDER_ERROR', 'This provider does not support fetching posts', 501)
     }

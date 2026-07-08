@@ -101,6 +101,14 @@ export interface LinkedInProfile {
   provider: string
 }
 
+export interface PostComment {
+  id: string
+  text: string
+  authorName: string | null
+  postedAt: string | null
+  likesCount: number | null
+}
+
 export interface PostItem {
   id: string
   text: string
@@ -111,6 +119,7 @@ export interface PostItem {
   repostsCount: number | null
   imageUrl: string | null
   isRepost: boolean
+  comments: PostComment[]
 }
 
 export interface ValidationResult {
