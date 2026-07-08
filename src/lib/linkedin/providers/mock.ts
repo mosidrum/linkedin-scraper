@@ -1,6 +1,6 @@
 import { validateLinkedInUrl, extractPublicIdentifier } from '../validator'
 import type { ProfileProvider } from './base'
-import type { LinkedInProfile, ValidationResult } from '../types'
+import type { LinkedInProfile, ValidationResult, PostItem } from '../types'
 
 const MOCK_PROFILE_TEMPLATE: Omit<
   LinkedInProfile,
@@ -129,12 +129,53 @@ const MOCK_PROFILE_TEMPLATE: Omit<
   recommendationsCount: 7,
 }
 
+const MOCK_POSTS: PostItem[] = [
+  {
+    id: 'post-0',
+    text: 'Excited to share that our team just open-sourced OpenTrace 2.0! 🎉 Distributed tracing for Node.js, now with native OpenTelemetry support and 50% lower overhead. Check it out on GitHub and let me know what you think.',
+    url: 'https://linkedin.com/posts/alexmorgan-opentrace',
+    postedAt: '2026-07-01T10:00:00Z',
+    likesCount: 843,
+    commentsCount: 67,
+    repostsCount: 124,
+    imageUrl: null,
+    isRepost: false,
+  },
+  {
+    id: 'post-1',
+    text: 'Hot take: the best architecture decision you can make is the one your team can actually maintain. We over-engineered our microservices setup last year. Spent Q1 simplifying. Deployment time dropped from 45min to 8min. Complexity kills velocity.',
+    url: 'https://linkedin.com/posts/alexmorgan-arch',
+    postedAt: '2026-06-15T14:30:00Z',
+    likesCount: 2100,
+    commentsCount: 203,
+    repostsCount: 389,
+    imageUrl: null,
+    isRepost: false,
+  },
+  {
+    id: 'post-2',
+    text: 'Just wrapped up my first month as a volunteer coding instructor at Code for Good. Teaching 16-year-olds to build their first web app is a completely different challenge than scaling distributed systems — and honestly more rewarding. If you have time to give back, do it.',
+    url: 'https://linkedin.com/posts/alexmorgan-volunteer',
+    postedAt: '2026-05-28T09:15:00Z',
+    likesCount: 512,
+    commentsCount: 44,
+    repostsCount: 58,
+    imageUrl: null,
+    isRepost: false,
+  },
+]
+
 export class MockProvider implements ProfileProvider {
   readonly id = 'mock'
   readonly name = 'Mock Provider (Development)'
 
   validateUrl(url: string): ValidationResult {
     return validateLinkedInUrl(url)
+  }
+
+  async fetchPosts(_url: string, _maxPosts = 10): Promise<PostItem[]> {
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    return MOCK_POSTS
   }
 
   async fetchProfile(url: string): Promise<LinkedInProfile> {

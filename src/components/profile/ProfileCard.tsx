@@ -8,6 +8,7 @@ import { EducationSection } from './EducationSection'
 import { SkillsSection } from './SkillsSection'
 import { CertificationsSection } from './CertificationsSection'
 import { ProjectsSection } from './ProjectsSection'
+import { PostsSection } from './PostsSection'
 import type { LinkedInProfile } from '@/lib/linkedin/types'
 
 interface Props {
@@ -54,6 +55,7 @@ export function ProfileCard({ initialProfile, onSave }: Props) {
       </div>
 
       <ProfileHero profile={profile} onChange={patch} />
+      <PostsSection profileUrl={profile.url} />
       <AboutSection about={profile.about} onChange={(v) => patch({ about: v })} />
       <ExperienceSection experience={profile.experience} />
       <EducationSection education={profile.education} />

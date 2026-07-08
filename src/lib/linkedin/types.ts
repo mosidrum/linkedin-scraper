@@ -101,6 +101,18 @@ export interface LinkedInProfile {
   provider: string
 }
 
+export interface PostItem {
+  id: string
+  text: string
+  url: string | null
+  postedAt: string | null
+  likesCount: number | null
+  commentsCount: number | null
+  repostsCount: number | null
+  imageUrl: string | null
+  isRepost: boolean
+}
+
 export interface ValidationResult {
   valid: boolean
   error?: string
