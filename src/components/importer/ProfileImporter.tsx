@@ -54,7 +54,6 @@ export function ProfileImporter() {
       setProfile(imported)
       setImportState('success')
 
-      // Log full profile data to console
       console.group(`LinkedIn Scrapper — ${imported.fullName} (@${imported.publicIdentifier})`)
       console.log('Profile URL:', imported.url)
       console.log('Provider:', imported.provider)
@@ -97,43 +96,50 @@ export function ProfileImporter() {
   const showTabs = importState === 'success' && profile
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6">
-      {/* Header card */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-1 text-xl font-bold text-gray-900">LinkedIn Scrapper</h1>
-        <p className="mb-5 text-sm text-gray-500">
-          Paste a personal LinkedIn profile URL to scrape publicly available information.
-        </p>
-
-        <div className="flex gap-3 items-start flex-col sm:flex-row">
-          <div className="flex-1 w-full">
-            <UrlInput onValidChange={setValidUrl} disabled={isImporting} />
+    <div className="w-full max-w-2xl mx-auto space-y-5">
+      {/* Hero header */}
+      <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-200/80">
+        <div className="bg-gradient-to-br from-[#0A66C2] via-[#0077B5] to-[#004182] px-6 pt-7 pb-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white leading-none">LinkedIn Scrapper</h1>
+              <p className="text-blue-200 text-xs mt-0.5">Public profile data extractor</p>
+            </div>
           </div>
 
-          <button
-            onClick={handleImport}
-            disabled={!validUrl || isImporting}
-            className="shrink-0 flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {isImporting ? (
-              <>
-                <LoadingSpinner size="sm" />
-                Scraping…
-              </>
-            ) : (
-              <>
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Scrape Profile
-              </>
-            )}
-          </button>
+          <div className="flex gap-2.5 items-start flex-col sm:flex-row">
+            <div className="flex-1 w-full">
+              <UrlInput onValidChange={setValidUrl} disabled={isImporting} />
+            </div>
+            <button
+              onClick={handleImport}
+              disabled={!validUrl || isImporting}
+              className="shrink-0 flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#0A66C2] shadow hover:bg-blue-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isImporting ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  Scraping…
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Scrape Profile
+                </>
+              )}
+            </button>
+          </div>
+          <p className="mt-2.5 text-xs text-blue-200/80">
+            Only publicly visible information is retrieved. No login required.
+          </p>
         </div>
-
-        <p className="mt-3 text-xs text-gray-400">
-          Only publicly visible information is retrieved. No login required.
-        </p>
       </div>
 
       {/* Progress */}
@@ -155,31 +161,30 @@ export function ProfileImporter() {
       {/* Tabs + content */}
       {showTabs && (
         <div className="space-y-4">
-          {/* Tab bar */}
-          <div className="flex border-b border-gray-200">
+          {/* Pill tab bar */}
+          <div className="flex gap-2 bg-white rounded-full p-1 border border-gray-200 shadow-sm w-fit">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
                 activeTab === 'profile'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'bg-[#0A66C2] text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Profile Information
             </button>
             <button
               onClick={() => setActiveTab('posts')}
-              className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
                 activeTab === 'posts'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'bg-[#0A66C2] text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Posts &amp; Comments
             </button>
           </div>
 
-          {/* Tab content */}
           {activeTab === 'profile' && (
             <ProfileCard
               initialProfile={profile}

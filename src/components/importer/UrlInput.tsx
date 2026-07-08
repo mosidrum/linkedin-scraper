@@ -100,7 +100,7 @@ export function UrlInput({ onValidChange, disabled = false }: Props) {
           aria-label="LinkedIn profile URL"
           aria-describedby={error ? 'url-error' : undefined}
           aria-invalid={state === 'invalid'}
-          className={`w-full rounded-xl border-2 bg-white py-3 pl-12 pr-12 text-sm font-medium placeholder-gray-400 shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${borderClass} ${textClass}`}
+          className={`w-full rounded-full border-2 bg-white py-3 pl-12 pr-12 text-sm font-medium placeholder-gray-400 shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${borderClass} ${textClass}`}
         />
 
         {/* Right indicator */}

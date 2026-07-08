@@ -35,19 +35,10 @@ export function ProfileCard({ initialProfile, onSave }: Props) {
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-400">
           Built by Isaac Ayodele with {profile.provider}
-          {' '}·{' '}
-          <a
-            href={profile.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
-          >
-            View on LinkedIn ↗
-          </a>
         </p>
         <button
           onClick={handleSave}
-          className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="rounded-full bg-[#0A66C2] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#004182] transition-colors"
         >
           {saved ? '✓ Saved' : 'Save Profile'}
         </button>
@@ -61,7 +52,6 @@ export function ProfileCard({ initialProfile, onSave }: Props) {
       <CertificationsSection certifications={profile.certifications} />
       <ProjectsSection projects={profile.projects} />
 
-      {/* Supplementary compact sections */}
       {profile.languages.length > 0 && (
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-base font-semibold text-gray-900">Languages</h2>
@@ -94,7 +84,7 @@ export function ProfileCard({ initialProfile, onSave }: Props) {
 
       {profile.honors.length > 0 && (
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Honors & Awards</h2>
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Honors &amp; Awards</h2>
           <ul className="space-y-3">
             {profile.honors.map((h) => (
               <li key={h.id}>
@@ -107,15 +97,6 @@ export function ProfileCard({ initialProfile, onSave }: Props) {
           </ul>
         </section>
       )}
-
-      <div className="pb-8 flex justify-end">
-        <button
-          onClick={handleSave}
-          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          {saved ? '✓ Saved' : 'Save Profile'}
-        </button>
-      </div>
     </div>
   )
 }

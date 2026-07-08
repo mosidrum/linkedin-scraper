@@ -20,7 +20,13 @@
 }
 
 body {
-  background: var(--background);
+  background: #F3F2EF;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #1B1F23;
+  }
 }
