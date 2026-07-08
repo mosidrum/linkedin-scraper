@@ -53,7 +53,7 @@ export function ImportProgress() {
         <Skeleton className="h-4 w-16 mb-3" />
         <div className="flex flex-wrap gap-2">
           {[80, 60, 90, 70, 50, 75].map((w, i) => (
-            <Skeleton key={i} className={`h-6 rounded-full`} style={{ width: `${w}px` }} />
+            <Skeleton key={i} className={`h-6 rounded-full w-16`} />
           ))}
         </div>
       </div>

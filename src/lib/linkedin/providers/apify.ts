@@ -64,7 +64,13 @@ export class ApifyProvider implements ProfileProvider {
     const run = await this.startPostsRun(profileUrl, maxPosts, scrapeComments)
     const finishedRun = await this.pollUntilDone(run.id)
     const items = await this.fetchDataset(finishedRun.defaultDatasetId, 50)
-    return items.map((raw, i) => normalizePost(raw, i))
+    // Filter out comment/reaction feed items — they appear as separate dataset rows
+    // with a ?commentUrn= or ?reactionUrn= query parameter in their LinkedIn URL
+    const postItems = items.filter((raw) => {
+      const url = String(raw.linkedinUrl ?? raw.shareLinkedinUrl ?? raw.url ?? '')
+      return !url.includes('commentUrn=') && !url.includes('reactionUrn=')
+    })
+    return postItems.slice(0, maxPosts).map((raw, i) => normalizePost(raw, i))
   }
 
   private async startPostsRun(profileUrl: string, maxPosts: number, scrapeComments: boolean): Promise<ApifyRun> {
@@ -155,60 +161,86 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function normalizeDate(v: unknown): string | null {
+  if (v === null || v === undefined) return null
+  if (typeof v === 'number' && v > 0) return new Date(v).toISOString()
+  if (typeof v === 'string' && v.trim()) return v.trim()
+  return null
+}
+
 function normalizePost(raw: Record<string, unknown>, index: number): PostItem {
   const r = raw as Record<string, unknown>
   const num = (v: unknown) => { const n = Number(v); return isNaN(n) || v === null || v === undefined ? null : n }
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 
-  // Log raw keys once to help diagnose missing field aliases
-  if (index === 0) console.log('[apify] raw post keys:', Object.keys(r))
+  // engagement: { likes, comments, shares, reactions: [] }
+  const eng = (r.engagement ?? {}) as Record<string, unknown>
 
-  // Stats may be nested under a stats/socialCounts/engagement object
-  const stats = (r.stats ?? r.socialCounts ?? r.engagement ?? r.socialActivity ?? {}) as Record<string, unknown>
-
-  let imageUrl: string | null = null
-  const images = r.images ?? r.media ?? r.articleContent
-  if (Array.isArray(images) && images.length > 0) {
-    imageUrl = str((images[0] as Record<string, unknown>)?.url ?? (images[0] as Record<string, unknown>)?.src ?? images[0]) || null
-  } else if (r.image) {
-    imageUrl = str((r.image as Record<string, unknown>)?.url ?? r.image) || null
+  // postedAt is an object: { timestamp: ms, date: ISO string, postedAgoShort, postedAgoText }
+  // or a plain string/number on some post types
+  const rawPostedAt = r.postedAt ?? r.createdAt ?? r.createdAtTimestamp ?? r.date ?? r.publishedAt
+  let postedAt: string | null = null
+  if (rawPostedAt !== null && rawPostedAt !== undefined) {
+    if (typeof rawPostedAt === 'object') {
+      const o = rawPostedAt as Record<string, unknown>
+      postedAt = normalizeDate(o.date ?? o.timestamp)
+    } else {
+      postedAt = normalizeDate(rawPostedAt)
+    }
   }
 
+  // Images: postImages array of { url } objects; also check postVideo thumbnail
+  let imageUrl: string | null = null
+  const postImages = r.postImages ?? r.images ?? r.media
+  if (Array.isArray(postImages) && postImages.length > 0) {
+    const first = postImages[0] as Record<string, unknown>
+    imageUrl = str(first?.url ?? first?.src ?? first) || null
+  } else if (r.postVideo) {
+    const vid = r.postVideo as Record<string, unknown>
+    imageUrl = str(vid.thumbnailUrl ?? vid.thumbnail) || null
+  }
+
+  // Comments array: { text/content/commentary, author: { name }, postedAt: { date, timestamp }, engagement: { likes } }
   const rawComments = r.comments ?? r.topComments ?? []
   const comments: PostComment[] = Array.isArray(rawComments)
-    ? rawComments.map((c: Record<string, unknown>, ci: number) => ({
-        id: str(c.id ?? c.urn ?? c.entityUrn) || `comment-${index}-${ci}`,
-        text: str(c.text ?? c.content ?? c.commentary ?? c.comment),
-        authorName: str(c.authorName ?? (c.author as Record<string, unknown>)?.name ?? c.commenterName ?? c.name) || null,
-        postedAt: str(c.postedAt ?? c.createdAt ?? c.date ?? c.publishedAt ?? c.postedDate) || null,
-        likesCount: num(c.likesCount ?? c.likes ?? c.numLikes ?? (c.stats as Record<string, unknown>)?.numLikes),
-      }))
+    ? rawComments.map((c: Record<string, unknown>, ci: number) => {
+        const cEng = (c.engagement ?? {}) as Record<string, unknown>
+        const author = (c.author ?? c.actor ?? {}) as Record<string, unknown>
+        const rawCDate = c.postedAt ?? c.createdAt ?? c.createdAtTimestamp ?? c.date
+        let cPostedAt: string | null = null
+        if (rawCDate !== null && rawCDate !== undefined) {
+          if (typeof rawCDate === 'object') {
+            const o = rawCDate as Record<string, unknown>
+            cPostedAt = normalizeDate(o.date ?? o.timestamp)
+          } else {
+            cPostedAt = normalizeDate(rawCDate)
+          }
+        }
+        return {
+          id: str(c.id ?? c.urn ?? c.entityUrn ?? c.postId) || `comment-${index}-${ci}`,
+          text: str(c.text ?? c.content ?? c.commentary ?? c.comment),
+          authorName: str(author.name ?? author.fullName ?? c.authorName ?? c.commenterName) || null,
+          postedAt: cPostedAt,
+          likesCount: num(cEng.likes ?? c.likesCount ?? c.likes ?? c.numLikes),
+        }
+      })
     : []
 
-  // Build LinkedIn post URL from ID if not provided directly
-  const rawId = str(r.id ?? r.urn ?? r.entityUrn ?? r.activityId)
-  const numericId = rawId.replace(/\D/g, '') || String(index)
-  const fallbackUrl = numericId ? `https://www.linkedin.com/feed/update/urn:li:activity:${numericId}/` : null
-
-  // Date: Apify may return a timestamp (ms), ISO string, or "X time ago" string
-  const rawDate = r.postedAt ?? r.publishedAt ?? r.createdAt ?? r.date ?? r.postedDate ?? r.publishedDate ?? r.time
-  let postedAt: string | null = null
-  if (typeof rawDate === 'number') {
-    postedAt = new Date(rawDate).toISOString()
-  } else if (typeof rawDate === 'string' && rawDate.trim()) {
-    postedAt = rawDate.trim()
-  }
+  // URL: linkedinUrl is the canonical field; shareLinkedinUrl as fallback
+  const rawId = str(r.id ?? r.postId ?? r.entityId ?? r.shareUrn)
+  const directUrl = str(r.linkedinUrl ?? r.shareLinkedinUrl ?? r.url ?? r.postUrl)
+  const url = directUrl || (rawId ? `https://www.linkedin.com/feed/update/urn:li:activity:${rawId}/` : null)
 
   return {
     id: rawId || `post-${index}`,
-    text: str(r.text ?? r.content ?? r.commentary ?? r.description),
-    url: str(r.url ?? r.postUrl ?? r.link ?? r.shareUrl ?? r.articleUrl) || fallbackUrl,
+    text: str(r.content ?? r.commentary ?? r.text ?? r.description),
+    url,
     postedAt,
-    likesCount: num(r.likesCount ?? r.likes ?? r.numLikes ?? stats.numLikes ?? stats.likesCount ?? r.reactionCount ?? r.reactions),
-    commentsCount: num(r.commentsCount ?? r.numComments ?? stats.numComments ?? stats.commentsCount ?? r.totalComments),
-    repostsCount: num(r.repostsCount ?? r.reposts ?? r.numReposts ?? r.sharesCount ?? stats.numShares ?? stats.repostsCount ?? r.numShares),
+    likesCount: num(eng.likes ?? r.likesCount ?? r.likes ?? r.numLikes ?? r.reactionCount),
+    commentsCount: num(eng.comments ?? r.commentsCount ?? r.numComments ?? r.totalComments),
+    repostsCount: num(eng.shares ?? r.repostsCount ?? r.sharesCount ?? r.numShares ?? r.reposts),
     imageUrl,
-    isRepost: Boolean(r.isRepost ?? r.repost ?? r.isShared ?? false),
+    isRepost: Boolean(r.isRepost ?? r.repost ?? r.contributed ?? false),
     comments,
   }
 }
